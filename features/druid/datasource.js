@@ -73,6 +73,7 @@ function (angular, _, kbn, moment) {
 
       return this._timeSeriesQuery(datasource, from, to, granularity, filters, aggregators, postAggregators)
         .then(function(response) {
+          console.log(convertTimeSeriesData(response.data, metricNames));
           return convertTimeSeriesData(response.data, metricNames);
         });
     };
@@ -147,6 +148,10 @@ function (angular, _, kbn, moment) {
       return _.union(_.pluck(displayAggs, 'name'), _.pluck(postAggregators, 'name'));
     }
 
+    function formatTimestamp(ts) {
+      return moment(item.timestamp).format('X')*1000
+    }
+
     function convertTimeSeriesData(md, metrics) {
       return metrics.map(function (metric) {
         return {
@@ -154,7 +159,7 @@ function (angular, _, kbn, moment) {
           datapoints: md.map(function (item) {
             return [
               item.result[metric],
-              moment(item.timestamp).format('X')
+              formatTimestamp(item.timestamp)
             ];
           })
         };
@@ -182,7 +187,7 @@ function (angular, _, kbn, moment) {
         var vals = metrics.map(function (metric) {
           return [
             item.event[metric],
-            moment(item.timestamp).format('X')
+            formatTimestamp(item.timestamp)
           ];
         });
         return _.zipObject(keys, vals);
