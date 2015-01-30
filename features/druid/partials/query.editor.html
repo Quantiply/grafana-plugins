@@ -76,7 +76,7 @@
             </a>
           </li>
           <li class="grafana-target-segment">
-            Scale Granularity
+            Custom Granularity
             <input type="checkbox"
                    class="grafana-target-option-checkbox"
                    ng-model="target.shouldOverrideGranularity"
@@ -84,24 +84,66 @@
                    >
           </li>
           <li ng-hide="!target.shouldOverrideGranularity">
-            <input type="text"
-                   class="input-small grafana-target-segment-input"
-                   ng-disabled="!target.shouldOverrideGranularity"
-                   ng-model="target.scaleGranularity"
-                   spellcheck='false'
-                   ng-blur="targetBlur()"
-                   placeholder="2.0"
-                   >
-            <a bs-tooltip="target.errors.scaleGranularity"
+            <select ng-model="target.customGranularity"
+                    ng-disabled="!target.shouldOverrideGranularity"
+                    class="grafana-target-segment-input input-medium"
+                    ng-options="granularity for granularity in customGranularities"
+                    ng-change="targetBlur()">
+            </select>
+            <a bs-tooltip="target.errors.customGranularity"
                style="color: rgb(229, 189, 28)"
-               ng-show="target.errors.scaleGranularity">
+               ng-show="target.errors.customGranularity">
               <i class="icon-warning-sign"></i>
             </a>
           </li>
           <li ng-switch on="target.queryType">
             <ul class="grafana-segment-list" role="menu">
               <li ng-switch-when="topN">
-                <!-- TODO: add threshold, metric, + dimension -->
+                <span class="grafana-target-segment">
+                  Threshold
+                </span>
+                <input type="text"
+                       class="grafana-target-segment-input input-small"
+                       ng-model="target.threshold"
+                       spellcheck='false'
+                       placeholder="100"
+                       ng-blur="targetBlur()"
+                       />
+                <a bs-tooltip="target.errors.threshold"
+                   style="color: rgb(229, 189, 28)"
+                   ng-show="target.errors.threshold">
+                  <i class="icon-warning-sign"></i>
+                </a>
+                <span class="grafana-target-segment">
+                  Metric
+                </span>
+                <input type="text"
+                       class="grafana-target-segment-input input-medium"
+                       ng-model="target.metric"
+                       spellcheck='false'
+                       placeholder="metric"
+                       ng-blur="targetBlur()"
+                       />
+                <a bs-tooltip="target.errors.metric"
+                   style="color: rgb(229, 189, 28)"
+                   ng-show="target.errors.metric">
+                  <i class="icon-warning-sign"></i>
+                </a>
+                <span class="grafana-target-segment">
+                  Dimension
+                </span>
+                <input type="text"
+                       class="grafana-target-segment-input input-medium"
+                       ng-model="target.dimension"
+                       spellcheck='false'
+                       placeholder="dimension"
+                       ng-blur="targetBlur()"
+                       />
+                <a bs-tooltip="target.errors.dimension"
+                   style="color: rgb(229, 189, 28)"
+                   ng-show="target.errors.dimension">
+                  <i class="icon-warning-sign"></i>
+                </a>
               </li>
               <li ng-switch-when="groupBy">
                 <span class="grafana-target-segment">
@@ -135,6 +177,7 @@
           </li>
           <li ng-repeat="filter in target.filters track by $index" class="grafana-target-segment">
             <span ng-switch on="filter.type">
+              <span ng-if="filter.negate">NOT(&nbsp;</span>
               <span ng-switch-when="regex">
                 {{filter.type}}:&nbsp;{{filter.dimension}}&nbsp;=&nbsp;{{filter.pattern}}
               </span>
@@ -142,6 +185,7 @@
                 {{filter.type}}:&nbsp;{{filter.dimension}}&nbsp;=&nbsp;{{filter.value}}
               </span>
             </span>
+            <span ng-if="filter.negate">&nbsp;)</span>
             <a ng-click="removeFilter($index)">
               <i class="icon-remove"></i>
             </a>
@@ -188,7 +232,13 @@
                          ng-blur="targetBlur()"
                          placeholder="value">
                 </span>
-              </span>
+              Negate
+              <input type="checkbox"
+                     class="grafana-target-option-checkbox"
+                     ng-model="target.currentFilter.negate"
+                     ng-change="targetBlur()"
+                     >
+              </span>              
               <a ng-click="clearCurrentFilter()">
                 <i class="icon-remove"></i>
               </a>

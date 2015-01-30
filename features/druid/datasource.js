@@ -46,8 +46,7 @@ function (angular, _, kbn, moment) {
       console.log(options);
 
       var promises = options.targets.map(function (target) {
-        var granularityScaleFactor = target.shouldOverrideGranularity? target.scaleGranularity : null;
-        var granularity = intervalToGranularity(options.interval, granularityScaleFactor);
+        var granularity = target.shouldOverrideGranularity? target.customGranularity : intervalToGranularity(options.interval);
         return dataSource._doQuery(from, to, granularity, target);
       });
 
@@ -64,6 +63,16 @@ function (angular, _, kbn, moment) {
       var groupBy = target.groupBy;
       var metricNames = getMetricNames(aggregators, postAggregators);
 
+      if (target.queryType === 'topN') {
+        var threshold = target.threshold;
+        var metric = target.metric;
+        var dimension = target.dimension;
+        return this._topNQuery(datasource, from, to, granularity, filters, aggregators, postAggregators, threshold, metric, dimension)
+          .then(function(response) {
+            return convertTopNData(response.data, dimension, metric);
+          });
+      }
+
       if (target.queryType === 'groupBy') {
         return this._groupByQuery(datasource, from, to, granularity, filters, aggregators, postAggregators, groupBy)
           .then(function(response) {
@@ -73,7 +82,6 @@ function (angular, _, kbn, moment) {
 
       return this._timeSeriesQuery(datasource, from, to, granularity, filters, aggregators, postAggregators)
         .then(function(response) {
-          console.log(convertTimeSeriesData(response.data, metricNames));
           return convertTimeSeriesData(response.data, metricNames);
         });
     };
@@ -83,6 +91,26 @@ function (angular, _, kbn, moment) {
         "queryType": "timeseries",
         "dataSource": datasource,
         "granularity": granularity,
+        "aggregations": aggregators,
+        "postAggregations": postAggregators,
+        "intervals": getQueryIntervals(from, to)
+      };
+
+      if (filters && filters.length > 0) {
+        query.filter = buildFilterTree(filters);
+      }
+
+      return this._druidQuery(query);
+    };
+
+    DruidDatasource.prototype._topNQuery = function (datasource, from, to, granularity, filters, aggregators, postAggregators, threshold, metric, dimension) {
+      var query = {
+        "queryType": "topN",
+        "dataSource": datasource,
+        "granularity": granularity,
+        "threshold": threshold,
+        "dimension": dimension,
+        "metric": metric,
         "aggregations": aggregators,
         "postAggregations": postAggregators,
         "intervals": getQueryIntervals(from, to)
@@ -127,8 +155,18 @@ function (angular, _, kbn, moment) {
       //Do template variable replacement
       var replacedFilters = filters.map(function (filter) {
         return filterTemplateExpanders[filter.type](filter);
+      })
+      .map(function (filter) {
+        var finalFilter = _.omit(filter, 'negate');
+        if (filter.negate) {
+          return { "type": "not", "field": finalFilter };
+        }
+        return finalFilter;
       });
       if (replacedFilters) {
+        if (replacedFilters.length === 1) {
+          return replacedFilters[0];
+        }
         return  {
           "type": "and",
           "fields": replacedFilters
@@ -149,7 +187,7 @@ function (angular, _, kbn, moment) {
     }
 
     function formatTimestamp(ts) {
-      return moment(item.timestamp).format('X')*1000
+      return moment(ts).format('X')*1000
     }
 
     function convertTimeSeriesData(md, metrics) {
@@ -173,10 +211,83 @@ function (angular, _, kbn, moment) {
       .join("-");
     }
 
+    function convertTopNData(md, dimension, metric) {
+      var mergedData = md.map(function (item) {
+        /*
+          Druid topN results look like this:
+            [
+              {
+                "timestamp": "ts1",
+                "result": [
+                  {"<dim>": d1, "<metric>": mv1},
+                  {"<dim>": d2, "<metric>": mv2}
+                ]
+              },
+              {
+                "timestamp": "ts2",
+                "result": [
+                  {"<dim>": d1, "<metric>": mv3},
+                  {"<dim>": d2, "<metric>": mv4}
+                ]
+              },
+              ...
+            ]
+        
+          This first map() transforms this into a list of objects
+          where the keys are dimension values
+          and the values are [metricValue, unixTime] so that we get this:
+            [
+              {
+                "d1": [mv1, ts1],
+                "d2": [mv2, ts1]
+              },
+              {
+                "d1": [mv3, ts2],
+                "d2": [mv4, ts2]
+              },
+              ...
+            ]        
+        */
+        var timestamp = formatTimestamp(item.timestamp);
+        var keys = _.pluck(item.result, dimension);
+        var vals = _.pluck(item.result, metric).map(function (val) { return [val, timestamp]});
+        return _.zipObject(keys, vals);
+      })
+      .reduce(function (prev, curr) {
+        /*
+          Reduce() collapses all of the mapped objects into a single
+          object.  The keys are dimension values
+          and the values are arrays of all the values for the same key.
+          The _.assign() function merges objects together and it's callback
+          gets invoked for every key,value pair in the source (2nd argument).
+          Since our initial value for reduce() is an empty object,
+          the _.assign() callback will get called for every new val
+          that we add to the final object.
+        */
+        return _.assign(prev, curr, function (pVal, cVal) {
+          if (pVal) {
+            pVal.push(cVal);
+            return pVal;
+          }
+          return [cVal];
+        });
+      }, {});
+
+      return _.map(mergedData, function (vals, key) {
+        /*
+          Second map converts the aggregated object into an array
+        */
+        return {
+          target: key,
+          datapoints: vals
+        };
+      });
+    }
+
     function convertGroupByData(md, groupBy, metrics) {
       var mergedData = md.map(function (item) {
         /*
-          The first map() transforms each Druid event into an object
+          The first map() transforms the list Druid events into a list of objects
           with keys of the form "<groupName>:<metric>" and values
           of the form [metricValue, unixTime]
         */
@@ -230,11 +341,8 @@ function (angular, _, kbn, moment) {
       return moment(kbn.parseDate(date));
     }
 
-    function intervalToGranularity(kbnInterval, granularityScaleFactor) {
+    function intervalToGranularity(kbnInterval) {
       var seconds = kbn.interval_to_seconds(kbnInterval);
-      if (granularityScaleFactor) {
-        seconds = seconds * granularityScaleFactor;
-      }
       var duration = moment.duration(seconds, 'seconds');
 
       //Granularity none is too slow

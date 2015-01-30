@@ -21,15 +21,33 @@ function (angular, _) {
       return true;
     },
     validateTopNQuery = function(target, errs) {
-      errs.queryType = "topN query not implemented yet";
-      return false;
+      if (!target.threshold) {
+        errs.threshold = "Must specify a threshold";
+        return false;
+      }
+      var intThreshold = parseInt(target.threshold);
+      if (isNaN(intThreshold)) {
+        errs.threshold = "Threshold must be a integer";
+        return false;
+      }
+      target.threshold = intThreshold
+      if (!target.metric) {
+        errs.metric = "Must specify a metric";
+        return false;
+      }
+      if (!target.dimension) {
+        errs.dimension = "Must specify a dimension";
+        return false;
+      }
+      return true;
     },
     validateSelectorFilter = function(target) {
       if (!target.currentFilter.dimension) {
         return "Must provide dimension name for selector filter.";
       }
       if (!target.currentFilter.value) {
-        return "Must provide value for selector filter.";
+        //Empty string is how you match null or empty in Druid
+        target.currentFilter.value = "";
       }
       return null;
     },
@@ -130,7 +148,9 @@ function (angular, _) {
     defaultQueryType = "timeseries",
     defaultFilterType = "selector",
     defaultAggregatorType = "count",
-    defaultPostAggregator = {type: 'arithmetic', 'fn': '+'};
+    defaultPostAggregator = {type: 'arithmetic', 'fn': '+'},
+    customGranularities = ['minute', 'fifteen_minute', 'thirty_minute', 'hour', 'day'],
+    defaultCustomGranularity = 'minute';
 
     $scope.init = function() {
       $scope.target.errors = validateTarget($scope.target);
@@ -139,6 +159,7 @@ function (angular, _) {
       $scope.aggregatorTypes = _.keys(aggregatorValidators);
       $scope.postAggregatorTypes = _.keys(postAggregatorValidators);
       $scope.arithmeticPostAggregatorFns = _.keys(arithmeticPostAggregatorFns);
+      $scope.customGranularities = customGranularities;
 
       if (!$scope.target.queryType) {
         $scope.target.queryType = defaultQueryType;
@@ -154,6 +175,10 @@ function (angular, _) {
 
       if (!$scope.target.currentPostAggregator) {
         clearCurrentPostAggregator();
+      }
+
+      if (!$scope.target.customGranularity) {
+        $scope.target.customGranularity = defaultCustomGranularity;
       }
 
       $scope.$on('typeahead-updated', function() {
@@ -339,11 +364,13 @@ function (angular, _) {
       }
 
       if (target.shouldOverrideGranularity) {
-        if (target.scaleGranularity) {
-          target.scaleGranularity = parseFloat(target.scaleGranularity);
+        if (target.customGranularity) {
+          if (!_.contains(customGranularities, target.customGranularity)) {
+            errs.customGranularity = "Invalid granularity.";
+          }
         }
         else {
-          errs.scaleGranularity = "You must supply an granularity scale factor.";
+          errs.customGranularity = "You must choose a granularity.";
         }
       }
 
