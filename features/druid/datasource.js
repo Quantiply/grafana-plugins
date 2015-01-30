@@ -26,7 +26,7 @@ function (angular, _, kbn, moment) {
 
     function DruidDatasource(datasource) {
       this.type = 'druid';
-      this.editorSrc = 'app/features/druid/partials/query.editor.html';
+      this.editorSrc = 'plugins/features/druid/partials/query.editor.html';
       this.url = datasource.url;
       this.name = datasource.name;
       this.supportMetrics = true;
