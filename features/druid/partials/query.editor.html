@@ -1,0 +1,456 @@
+<div class="editor-row" style="margin-top: 10px;">
+  <div  ng-repeat="target in panel.targets"
+        class="grafana-target"
+        ng-class="{'grafana-target-hidden': target.hide}"
+        ng-controller="DruidTargetCtrl"
+        ng-init="init()">
+
+    <div class="grafana-target-inner-wrapper">
+      <div class="grafana-target-inner">
+        <ul class="grafana-target-controls">
+          <li class="dropdown">
+            <a  class="pointer dropdown-toggle"
+                data-toggle="dropdown"
+                tabindex="1">
+              <i class="icon icon-cog"></i>
+            </a>
+            <ul class="dropdown-menu pull-right" role="menu">
+              <li role="menuitem">
+                <a  tabindex="1"
+                    ng-click="duplicate()">
+                  Duplicate
+                </a>
+              </li>
+            </ul>
+          </li>
+          <li>
+            <a class="pointer" tabindex="1" ng-click="removeDataQuery(target)">
+              <i class="icon icon-remove"></i>
+            </a>
+          </li>
+        </ul>
+
+        <ul class="grafana-segment-list">
+          <li>
+            <a  class="grafana-target-segment"
+                ng-click="target.hide = !target.hide; get_data();"
+                role="menuitem">
+              <i class="icon-eye-open"></i>
+            </a>
+          </li>
+        </ul>
+
+        <ul class="grafana-segment-list" role="menu">
+          <li class="grafana-target-segment">
+            Datasource
+          </li>
+          <li>
+            <input type="text"
+                   class="grafana-target-segment-input input-medium"
+                   ng-model="target.datasource"
+                   spellcheck='false'
+                   placeholder="datasource"
+                   bs-typeahead="listDataSources"
+                   data-min-length=0
+                   ng-blur="targetBlur()"
+                   >
+            <a bs-tooltip="target.errors.datasource"
+               style="color: rgb(229, 189, 28)"
+               ng-show="target.errors.datasource">
+              <i class="icon-warning-sign"></i>
+            </a>
+          </li>
+          <li class="grafana-target-segment">
+            Type
+          </li>
+          <li>
+            <select ng-model="target.queryType"
+                    class="grafana-target-segment-input input-medium"
+                    ng-options="type for type in queryTypes"
+                    ng-change="targetBlur()">
+            </select>
+            <a bs-tooltip="target.errors.queryType"
+               style="color: rgb(229, 189, 28)"
+               ng-show="target.errors.queryType">
+              <i class="icon-warning-sign"></i>
+            </a>
+          </li>
+          <li class="grafana-target-segment">
+            Scale Granularity
+            <input type="checkbox"
+                   class="grafana-target-option-checkbox"
+                   ng-model="target.shouldOverrideGranularity"
+                   ng-change="targetBlur(target)"
+                   >
+          </li>
+          <li ng-hide="!target.shouldOverrideGranularity">
+            <input type="text"
+                   class="input-small grafana-target-segment-input"
+                   ng-disabled="!target.shouldOverrideGranularity"
+                   ng-model="target.scaleGranularity"
+                   spellcheck='false'
+                   ng-blur="targetBlur()"
+                   placeholder="2.0"
+                   >
+            <a bs-tooltip="target.errors.scaleGranularity"
+               style="color: rgb(229, 189, 28)"
+               ng-show="target.errors.scaleGranularity">
+              <i class="icon-warning-sign"></i>
+            </a>
+          </li>
+          <li ng-switch on="target.queryType">
+            <ul class="grafana-segment-list" role="menu">
+              <li ng-switch-when="topN">
+                <!-- TODO: add threshold, metric, + dimension -->
+              </li>
+              <li ng-switch-when="groupBy">
+                <span class="grafana-target-segment">
+                  Group By
+                </span>
+                <input type="text"
+                       class="grafana-target-segment-input input-medium"
+                       ng-model="target.groupBy"
+                       spellcheck='false'
+                       placeholder="dim1,dim2"
+                       ng-blur="targetBlur()"
+                       />
+                <a bs-tooltip="target.errors.groupBy"
+                   style="color: rgb(229, 189, 28)"
+                   ng-show="target.errors.groupBy">
+                  <i class="icon-warning-sign"></i>
+                </a>
+                <!-- TODO: add limit and having -->
+              </li>
+            </ul>
+          </li>
+        </ul>
+        <div class="clearfix"></div>
+      </div>
+
+      <div class="grafana-target-inner">
+        <ul class="grafana-segment-list" role="menu">
+
+          <li class="grafana-target-segment">
+              Filters
+          </li>
+          <li ng-repeat="filter in target.filters track by $index" class="grafana-target-segment">
+            <span ng-switch on="filter.type">
+              <span ng-switch-when="regex">
+                {{filter.type}}:&nbsp;{{filter.dimension}}&nbsp;=&nbsp;{{filter.pattern}}
+              </span>
+              <span ng-switch-when="selector">
+                {{filter.type}}:&nbsp;{{filter.dimension}}&nbsp;=&nbsp;{{filter.value}}
+              </span>
+            </span>
+            <a ng-click="removeFilter($index)">
+              <i class="icon-remove"></i>
+            </a>
+          </li>
+
+          <li class="grafana-target-segment" ng-hide="addFilterMode">
+            <a ng-click="addFilter()">
+              <i class="icon-plus-sign"></i>
+            </a>
+          </li>
+
+          <li ng-show="addFilterMode">
+              <select ng-model="target.currentFilter.type"
+                      class="grafana-target-segment-input input-small"
+                      ng-options="type for type in filterTypes"
+                      ng-change="targetBlur()">
+              </select>
+              <span ng-switch on="target.currentFilter.type">
+                <span ng-switch-when="regex">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentFilter.dimension"
+                         ng-blur="targetBlur()"
+                         placeholder="dimension">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentFilter.pattern"
+                         ng-blur="targetBlur()"
+                         placeholder="pattern">
+                </span>
+                <span ng-switch-when="selector">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentFilter.dimension"
+                         ng-blur="targetBlur()"
+                         placeholder="dimension">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentFilter.value"
+                         ng-blur="targetBlur()"
+                         placeholder="value">
+                </span>
+              </span>
+              <a ng-click="clearCurrentFilter()">
+                <i class="icon-remove"></i>
+              </a>
+              <a bs-tooltip="target.errors.currentFilter"
+                 style="color: rgb(229, 189, 28)"
+                 ng-show="target.errors.currentFilter">
+                <i class="icon-warning-sign"></i>
+              </a>
+              <a ng-click="addFilter()">
+                <i class="icon-plus-sign"></i>
+              </a>
+          </li>
+        </ul>
+        <div class="clearfix"></div>
+      </div>
+
+      <div class="grafana-target-inner">
+        <ul class="grafana-segment-list" role="menu">
+          <li class="grafana-target-segment">
+            Aggregations
+            <a bs-tooltip="target.errors.aggregators"
+               style="color: rgb(229, 189, 28)"
+               ng-show="target.errors.aggregators">
+              <i class="icon-warning-sign"></i>
+            </a>
+          </li>
+
+          <li ng-repeat="aggregator in target.aggregators track by $index" class="grafana-target-segment">
+            <span ng-switch on="aggregator.type">
+              <span ng-switch-when="count">
+                {{aggregator.type}}:&nbsp;name&nbsp;=&nbsp;{{aggregator.name}}
+              </span>
+              <span ng-switch-when="longSum">
+                {{aggregator.type}}:&nbsp;name&nbsp;=&nbsp;{{aggregator.name}},&nbsp;fieldName&nbsp;=&nbsp;{{aggregator.fieldName}}
+              </span>
+              <span ng-switch-when="doubleSum">
+                {{aggregator.type}}:&nbsp;name&nbsp;=&nbsp;{{aggregator.name}},&nbsp;fieldName&nbsp;=&nbsp;{{aggregator.fieldName}}
+              </span>
+              <span ng-switch-when="approxHistogramFold">
+                {{aggregator.type}}:&nbsp;name&nbsp;=&nbsp;{{aggregator.name}},&nbsp;fieldName&nbsp;=&nbsp;{{aggregator.fieldName}}
+              </span>
+              <span ng-switch-when="hyperUnique">
+                {{aggregator.type}}:&nbsp;name&nbsp;=&nbsp;{{aggregator.name}},&nbsp;fieldName&nbsp;=&nbsp;{{aggregator.fieldName}}
+              </span>
+            </span>
+            <a ng-click="removeAggregator($index)">
+              <i class="icon-remove"></i>
+            </a>
+          </li>
+
+          <li class="grafana-target-segment" ng-hide="addAggregatorMode">
+            <a ng-click="addAggregator()">
+              <i class="icon-plus-sign"></i>
+            </a>
+          </li>
+
+          <li ng-show="addAggregatorMode">
+              <select ng-model="target.currentAggregator.type"
+                      class="grafana-target-segment-input input-small"
+                      ng-options="type for type in aggregatorTypes"
+                      ng-change="targetBlur()">
+              </select>
+              <span ng-switch on="target.currentAggregator.type">
+                <span ng-switch-when="count">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentAggregator.name"
+                         ng-blur="targetBlur()"
+                         placeholder="output name">
+                </span>
+                <span ng-switch-when="longSum">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentAggregator.name"
+                         ng-blur="targetBlur()"
+                         placeholder="output name">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentAggregator.fieldName"
+                         ng-blur="targetBlur()"
+                         placeholder="metric name">
+                </span>
+                <span ng-switch-when="doubleSum">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentAggregator.name"
+                         ng-blur="targetBlur()"
+                         placeholder="output name">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentAggregator.fieldName"
+                         ng-blur="targetBlur()"
+                         placeholder="metric name">
+                </span>
+                <span ng-switch-when="approxHistogramFold">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentAggregator.name"
+                         ng-blur="targetBlur()"
+                         placeholder="output name">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentAggregator.fieldName"
+                         ng-blur="targetBlur()"
+                         placeholder="metric name">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentAggregator.resolution"
+                         ng-blur="targetBlur()"
+                         placeholder="resolution">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentAggregator.numBuckets"
+                         ng-blur="targetBlur()"
+                         placeholder="numBuckets">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentAggregator.lowerLimit"
+                         ng-blur="targetBlur()"
+                         placeholder="lowerLimit">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentAggregator.upperLimit"
+                         ng-blur="targetBlur()"
+                         placeholder="upperLimit">
+                </span>
+                <span ng-switch-when="hyperUnique">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentAggregator.name"
+                         ng-blur="targetBlur()"
+                         placeholder="output name">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentAggregator.fieldName"
+                         ng-blur="targetBlur()"
+                         placeholder="metric name">
+                </span>
+              </span>
+              <a ng-click="clearCurrentAggregator()">
+                <i class="icon-remove"></i>
+              </a>
+              <a bs-tooltip="target.errors.currentAggregator"
+                 style="color: rgb(229, 189, 28)"
+                 ng-show="target.errors.currentAggregator">
+                <i class="icon-warning-sign"></i>
+              </a>
+              <a ng-click="addAggregator()">
+                <i class="icon-plus-sign"></i>
+              </a>
+          </li>
+        </ul>
+        <div class="clearfix"></div>
+      </div>
+
+      <div class="grafana-target-inner">
+        <ul class="grafana-segment-list" role="menu">
+          <li class="grafana-target-segment">
+            Post Aggregations
+            <a bs-tooltip="target.errors.postAggregators"
+               style="color: rgb(229, 189, 28)"
+               ng-show="target.errors.postAggregators">
+              <i class="icon-warning-sign"></i>
+            </a>
+          </li>
+
+          <li ng-repeat="postAggregator in target.postAggregators track by $index" class="grafana-target-segment">
+            <span ng-switch on="postAggregator.type">
+              <span ng-switch-when="arithmetic">
+                {{postAggregator.type}}:&nbsp;name&nbsp;=&nbsp;{{postAggregator.name}},&nbsp;fn&nbsp;=&nbsp;{{postAggregator.fn}}, &nbsp;fields&nbsp;=&nbsp;{{postAggregator.fields}}
+              </span>
+              <span ng-switch-when="quantile">
+                {{postAggregator.type}}:&nbsp;name&nbsp;=&nbsp;{{postAggregator.name}},&nbsp;field&nbsp;=&nbsp;{{postAggregator.fieldName}}, &nbsp;prob&nbsp;=&nbsp;{{postAggregator.probability}}
+              </span>
+            </span>
+            <a ng-click="removePostAggregator($index)">
+              <i class="icon-remove"></i>
+            </a>
+          </li>
+
+          <li class="grafana-target-segment" ng-hide="addPostAggregatorMode">
+            <a ng-click="addPostAggregator()">
+              <i class="icon-plus-sign"></i>
+            </a>
+          </li>
+
+          <li ng-show="addPostAggregatorMode">
+              <select ng-model="target.currentPostAggregator.type"
+                      class="grafana-target-segment-input input-medium"
+                      ng-options="type for type in postAggregatorTypes"
+                      ng-change="targetBlur()">
+              </select>
+              <span ng-switch on="target.currentPostAggregator.type">
+                <span ng-switch-when="arithmetic">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentPostAggregator.name"
+                         ng-blur="targetBlur()"
+                         placeholder="output name">
+                  <select ng-model="target.currentPostAggregator.fn"
+                          class="grafana-target-segment-input input-small"
+                          ng-options="fn for fn in arithmeticPostAggregatorFns"
+                          ng-change="targetBlur()">
+                  </select>
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentPostAggregator.fields"
+                         ng-blur="targetBlur()"
+                         placeholder="field1,field2">
+                </span>
+                <span ng-switch-when="quantile">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentPostAggregator.name"
+                         ng-blur="targetBlur()"
+                         placeholder="output name">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentPostAggregator.fieldName"
+                         ng-blur="targetBlur()"
+                         placeholder="agg name">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentPostAggregator.probability"
+                         ng-blur="targetBlur()"
+                         placeholder="probability">
+                </span>
+              </span>
+              <a ng-click="clearCurrentPostAggregator()">
+                <i class="icon-remove"></i>
+              </a>
+              <a bs-tooltip="target.errors.currentPostAggregator"
+                 style="color: rgb(229, 189, 28)"
+                 ng-show="target.errors.currentPostAggregator">
+                <i class="icon-warning-sign"></i>
+              </a>
+              <a ng-click="addPostAggregator()">
+                <i class="icon-plus-sign"></i>
+              </a>
+          </li>
+        </ul>
+        <div class="clearfix"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
