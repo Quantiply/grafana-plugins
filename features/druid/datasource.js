@@ -37,6 +37,45 @@ function (angular, _, kbn, moment) {
       return $http({method: 'GET', url: this.url + '/datasources'});
     }
 
+    //Get list of dimensions
+    DruidDatasource.prototype.getDimensions = function (target, range) {
+      return this.getSchema(target, range)
+        .then(function(response) {
+          console.log(response.data[0].columns);
+          //We set merge=true in the query so there should be a single result interval
+          var dims = _.map(response.data[0].columns, function (col, dim) {
+            //http://druid.io/docs/latest/SegmentMetadataQuery.html
+            //Dimensions are strings in DRUID.  However, it seems that histograms
+            //are also strings but have negative size
+            if (col.type === "STRING" && col.size > 0) {
+              return dim;
+            }
+            return null;
+          })
+          .filter(function (dim) { return dim !== null; });
+          return dims;
+        });
+    }
+
+    //Get segment metadata
+    DruidDatasource.prototype.getSchema = function (target, range) {
+      var dataSourceObj = this;
+      var datasource = target.datasource;
+      var from = dateToMoment(range.from);
+      var to = dateToMoment(range.to);
+      return dataSourceObj._getSchema(datasource, from, to);
+    }
+
+    DruidDatasource.prototype._getSchema = function (datasource, from, to) {
+      var query = {
+        "queryType": "segmentMetadata",
+        "dataSource": datasource,
+        "intervals": getQueryIntervals(from, to),
+        "merge": true
+      };
+      return this._druidQuery(query);
+    };
+
     // Called once per panel (graph)
     DruidDatasource.prototype.query = function(options) {
       var dataSource = this;

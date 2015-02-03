@@ -209,8 +209,11 @@
                          class="input-small grafana-target-segment-input"
                          spellcheck='false'
                          ng-model="target.currentFilter.dimension"
+                         placeholder="dimension"
+                         bs-typeahead="getDimensions"
+                         data-min-length=0
                          ng-blur="targetBlur()"
-                         placeholder="dimension">
+                  >
                   <input type="text"
                          class="input-small grafana-target-segment-input"
                          spellcheck='false'
@@ -223,8 +226,11 @@
                          class="input-small grafana-target-segment-input"
                          spellcheck='false'
                          ng-model="target.currentFilter.dimension"
+                         placeholder="dimension"
+                         bs-typeahead="getDimensions"
+                         data-min-length=0
                          ng-blur="targetBlur()"
-                         placeholder="dimension">
+                  >
                   <input type="text"
                          class="input-small grafana-target-segment-input"
                          spellcheck='false'

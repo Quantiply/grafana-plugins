@@ -217,6 +217,13 @@ function (angular, _) {
       }
     };
 
+    $scope.getDimensions = function(query, callback) {
+      console.log("Dim check " + query);
+      $scope.datasource
+        .getDimensions($scope.target, $scope.range)
+        .then(callback);
+    };
+
     $scope.addFilter = function() {
       if (!$scope.addFilterMode) {
         //Enabling this mode will display the filter inputs
