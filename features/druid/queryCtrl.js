@@ -7,8 +7,8 @@ function (angular, _) {
 
   var module = angular.module('grafana.controllers');
 
-  module.controller('DruidTargetCtrl', function($scope, $timeout) {
-
+  module.controller('DruidTargetCtrl', function($scope, $q, $timeout, $log) {
+    
     var
     validateGroupByQuery = function(target, errs) {
       if (!target.groupBy) {
@@ -218,10 +218,35 @@ function (angular, _) {
     };
 
     $scope.getDimensions = function(query, callback) {
-      console.log("Dim check " + query);
-      $scope.datasource
-        .getDimensions($scope.target, $scope.range)
-        .then(callback);
+      $log.debug("Dimension type-ahead query for: " + query);
+      return $scope.getDimensionsAndMetrics(query).then(function (dimsAndMetrics) {
+        callback(dimsAndMetrics[0]);
+      });
+    };
+
+    $scope.getDimensionsAndMetrics = function(query) {
+      if (!$scope.dimensionsAndMetrics) {
+        $log.debug("Fetch schame: no cached value to use");
+        if (!$scope.dimensionsAndMetricsPromise) {
+          $log.debug("Fetching schema from Druid");
+          $scope.dimensionsAndMetricsPromise = $scope.datasource.getDimensionsAndMetrics($scope.target, $scope.range)
+            .then(function(result) {
+              $scope.dimensionsAndMetricsPromise = null;
+              $scope.dimensionsAndMetrics = result;
+              return $scope.dimensionsAndMetrics;
+            });
+        }
+        else {
+          $log.debug("Schema fetch already in progress...returning same promise");
+        }
+        return $scope.dimensionsAndMetricsPromise;
+      }
+      else {
+        $log.debug("Using cached value for schema lookup");
+        var deferred = $q.defer();
+        deferred.resolve($scope.dimensionsAndMetrics);
+        return deferred.promise;
+      }
     };
 
     $scope.addFilter = function() {

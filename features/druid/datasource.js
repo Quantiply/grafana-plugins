@@ -10,7 +10,7 @@ function (angular, _, kbn, moment) {
 
   var module = angular.module('grafana.services');
 
-  module.factory('DruidDatasource', function($q, $http, templateSrv) {
+  module.factory('DruidDatasource', function($q, $http, templateSrv, $timeout) {
 
     function replaceTemplateValues(obj, attrList) {
       var substitutedVals = attrList.map(function (attr) {
@@ -37,22 +37,31 @@ function (angular, _, kbn, moment) {
       return $http({method: 'GET', url: this.url + '/datasources'});
     }
 
-    //Get list of dimensions
-    DruidDatasource.prototype.getDimensions = function (target, range) {
+    //Returns a promise which returns [listOfDimensions, listOfMetrics]
+    DruidDatasource.prototype.getDimensionsAndMetrics = function (target, range) {
       return this.getSchema(target, range)
         .then(function(response) {
-          //We're expecting a single result interval
-          var dims = _.map(response.data[0].columns, function (col, dim) {
-            //http://druid.io/docs/latest/SegmentMetadataQuery.html
-            //Dimensions are strings in DRUID.  However, it seems that histograms
-            //are also strings but have negative size
-            if (col.type === "STRING" && col.size > 0) {
-              return dim;
-            }
-            return null;
-          })
-          .filter(function (dim) { return dim !== null; });
-          return dims;
+          //http://druid.io/docs/latest/SegmentMetadataQuery.html
+          var columnGroups = _.mapValues(
+            _.groupBy(
+              _.pairs(response.data[0].columns),
+              function (column) {
+                var colName = column[0];
+                var colInfo = column[1];
+                if (colName === "__time") {
+                  return "time";
+                }
+                //Dimensions are strings in DRUID.  However, it seems that histograms
+                //are also strings but have negative size
+                if (colInfo.type === "STRING" && colInfo.size > 0) {
+                  return "dimension";
+                }
+                return "metric";
+              }),
+          function (colGroup) {
+            return _.pluck(colGroup, 0);
+          });
+          return [columnGroups.dimension, columnGroups.metric]
         });
     }
 
