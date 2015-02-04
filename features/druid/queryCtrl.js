@@ -218,9 +218,16 @@ function (angular, _) {
     };
 
     $scope.getDimensions = function(query, callback) {
-      $log.debug("Dimension type-ahead query for: " + query);
+      $log.debug("Dimension type-ahead query");
       return $scope.getDimensionsAndMetrics(query).then(function (dimsAndMetrics) {
         callback(dimsAndMetrics[0]);
+      });
+    };
+
+    $scope.getMetrics = function(query, callback) {
+      $log.debug("Metric type-ahead query");
+      return $scope.getDimensionsAndMetrics(query).then(function (dimsAndMetrics) {
+        callback(dimsAndMetrics[1]);
       });
     };
 

@@ -137,6 +137,8 @@
                        ng-model="target.dimension"
                        spellcheck='false'
                        placeholder="dimension"
+                       bs-typeahead="getDimensions"
+                       data-min-length=0
                        ng-blur="targetBlur()"
                        />
                 <a bs-tooltip="target.errors.dimension"
@@ -322,13 +324,17 @@
                          spellcheck='false'
                          ng-model="target.currentAggregator.name"
                          ng-blur="targetBlur()"
-                         placeholder="output name">
+                         placeholder="output name"
+                  >
                   <input type="text"
                          class="input-small grafana-target-segment-input"
                          spellcheck='false'
                          ng-model="target.currentAggregator.fieldName"
                          ng-blur="targetBlur()"
-                         placeholder="metric name">
+                         placeholder="metric name"
+                         bs-typeahead="getMetrics"
+                         data-min-length=0
+                >
                 </span>
                 <span ng-switch-when="doubleSum">
                   <input type="text"
@@ -342,7 +348,10 @@
                          spellcheck='false'
                          ng-model="target.currentAggregator.fieldName"
                          ng-blur="targetBlur()"
-                         placeholder="metric name">
+                         placeholder="metric name"
+                         bs-typeahead="getMetrics"
+                         data-min-length=0
+                >
                 </span>
                 <span ng-switch-when="approxHistogramFold">
                   <input type="text"
