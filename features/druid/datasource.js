@@ -41,8 +41,7 @@ function (angular, _, kbn, moment) {
     DruidDatasource.prototype.getDimensions = function (target, range) {
       return this.getSchema(target, range)
         .then(function(response) {
-          console.log(response.data[0].columns);
-          //We set merge=true in the query so there should be a single result interval
+          //We're expecting a single result interval
           var dims = _.map(response.data[0].columns, function (col, dim) {
             //http://druid.io/docs/latest/SegmentMetadataQuery.html
             //Dimensions are strings in DRUID.  However, it seems that histograms
@@ -61,8 +60,9 @@ function (angular, _, kbn, moment) {
     DruidDatasource.prototype.getSchema = function (target, range) {
       var dataSourceObj = this;
       var datasource = target.datasource;
-      var from = dateToMoment(range.from);
+      //Using the most recent segment for metadata
       var to = dateToMoment(range.to);
+      var from = to.subtract(1, 's');
       return dataSourceObj._getSchema(datasource, from, to);
     }
 
