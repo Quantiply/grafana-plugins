@@ -93,6 +93,7 @@ function (angular, _, kbn, moment) {
       var aggregators = target.aggregators;
       var postAggregators = target.postAggregators;
       var groupBy = target.groupBy;
+      var limitSpec = null;
       var metricNames = getMetricNames(aggregators, postAggregators);
 
       if (target.queryType === 'topN') {
@@ -106,7 +107,10 @@ function (angular, _, kbn, moment) {
       }
 
       if (target.queryType === 'groupBy') {
-        return this._groupByQuery(datasource, from, to, granularity, filters, aggregators, postAggregators, groupBy)
+        if (target.hasLimit) {
+          limitSpec = getLimitSpec(target.limit, target.orderBy); 
+        }
+        return this._groupByQuery(datasource, from, to, granularity, filters, aggregators, postAggregators, groupBy, limitSpec)
           .then(function(response) {
             return convertGroupByData(response.data, groupBy, metricNames);
           });
@@ -155,7 +159,7 @@ function (angular, _, kbn, moment) {
       return this._druidQuery(query);
     };
 
-    DruidDatasource.prototype._groupByQuery = function (datasource, from, to, granularity, filters, aggregators, postAggregators, groupBy) {
+    DruidDatasource.prototype._groupByQuery = function (datasource, from, to, granularity, filters, aggregators, postAggregators, groupBy, limitSpec) {
       var query = {
         "queryType": "groupBy",
         "dataSource": datasource,
@@ -163,7 +167,8 @@ function (angular, _, kbn, moment) {
         "dimensions": groupBy,
         "aggregations": aggregators,
         "postAggregations": postAggregators,
-        "intervals": getQueryIntervals(from, to)
+        "intervals": getQueryIntervals(from, to),
+        "limitSpec": limitSpec
       };
 
       if (filters && filters.length > 0) {
@@ -182,6 +187,16 @@ function (angular, _, kbn, moment) {
       console.log(query);
       return $http(options);
     };
+
+    function getLimitSpec(limitNum, orderBy) {
+      return {
+        "type": "default",
+        "limit": limitNum,
+        "columns": orderBy.map(function (col) {
+          return {"dimension": col, "direction": "DESCENDING"};
+        })
+      };
+    }
 
     function buildFilterTree(filters) {
       //Do template variable replacement

@@ -10,17 +10,7 @@ function (angular, _) {
   module.controller('DruidTargetCtrl', function($scope, $q, $timeout, $log) {
     
     var
-    validateGroupByQuery = function(target, errs) {
-      if (!target.groupBy) {
-        errs.groupBy = "Must list dimensions to group by.";
-        return false;
-      }
-      if (!Array.isArray(target.groupBy)) {
-        target.groupBy = target.groupBy.split(",");
-      }
-      return true;
-    },
-    validateTopNQuery = function(target, errs) {
+    validateLimit = function (target, errs) {
       if (!target.limit) {
         errs.limit = "Must specify a limit";
         return false;
@@ -30,7 +20,35 @@ function (angular, _) {
         errs.limit = "Limit must be a integer";
         return false;
       }
-      target.limit = intLimit
+      target.limit = intLimit;
+      if (target.orderBy && !Array.isArray(target.orderBy)) {
+        target.orderBy = target.orderBy.split(",");
+      }
+      if (!target.orderBy) {
+        errs.orderBy = "Must list columns to order by.";
+        return false;
+      }
+      return true;
+    },
+    validateGroupByQuery = function(target, errs) {
+      if (target.groupBy && !Array.isArray(target.groupBy)) {
+        target.groupBy = target.groupBy.split(",");
+      }
+      if (!target.groupBy) {
+        errs.groupBy = "Must list dimensions to group by.";
+        return false;
+      }
+      if (target.hasLimit) {
+        if (!validateLimit(target, errs)) {
+          return false;
+        }
+      }
+      return true;
+    },
+    validateTopNQuery = function(target, errs) {
+      if (!validateLimit(target, errs)) {
+        return false;
+      }
       if (!target.metric) {
         errs.metric = "Must specify a metric";
         return false;
@@ -211,6 +229,7 @@ function (angular, _) {
     };
 
     $scope.listDataSources = function(query, callback) {
+      $log.debug("Datasource type-ahead query");
       var ioFn = _.bind($scope.datasource.getDataSources, $scope.datasource);
       return cachedAndCoalesced(ioFn, $scope, 'dataSourceList').then(function(sources) {
           callback(sources);
