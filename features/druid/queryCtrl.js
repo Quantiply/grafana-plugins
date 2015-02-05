@@ -211,15 +211,10 @@ function (angular, _) {
     };
 
     $scope.listDataSources = function(query, callback) {
-      if (!$scope.dataSourceList) {
-        return $scope.datasource.getDataSources().then(function(result) {
-          $scope.dataSourceList = result.data;
-          callback($scope.dataSourceList);
-        });
-      }
-      else {
-        return $scope.dataSourceList;
-      }
+      var ioFn = _.bind($scope.datasource.getDataSources, $scope.datasource);
+      return cachedAndCoalesced(ioFn, $scope, 'dataSourceList').then(function(sources) {
+          callback(sources);
+      });
     };
 
     $scope.getDimensions = function(query, callback) {
@@ -237,28 +232,8 @@ function (angular, _) {
     };
 
     $scope.getDimensionsAndMetrics = function(query) {
-      if (!$scope.dimensionsAndMetrics) {
-        $log.debug("Fetch schame: no cached value to use");
-        if (!$scope.dimensionsAndMetricsPromise) {
-          $log.debug("Fetching schema from Druid");
-          $scope.dimensionsAndMetricsPromise = $scope.datasource.getDimensionsAndMetrics($scope.target, $scope.range)
-            .then(function(result) {
-              $scope.dimensionsAndMetricsPromise = null;
-              $scope.dimensionsAndMetrics = result;
-              return $scope.dimensionsAndMetrics;
-            });
-        }
-        else {
-          $log.debug("Schema fetch already in progress...returning same promise");
-        }
-        return $scope.dimensionsAndMetricsPromise;
-      }
-      else {
-        $log.debug("Using cached value for schema lookup");
-        var deferred = $q.defer();
-        deferred.resolve($scope.dimensionsAndMetrics);
-        return deferred.promise;
-      }
+      var ioFn = _.bind($scope.datasource.getDimensionsAndMetrics, $scope.datasource, $scope.target, $scope.range);
+      return cachedAndCoalesced(ioFn, $scope, 'dimensionsAndMetrics');
     };
 
     $scope.addFilter = function() {
@@ -356,6 +331,32 @@ function (angular, _) {
       clearCurrentPostAggregator();
       $scope.addPostAggregatorMode = false;
       $scope.targetBlur();
+    };
+
+    function cachedAndCoalesced(ioFn, $scope, cacheName) {
+      var promiseName = cacheName + "Promise";
+      if (!$scope[cacheName]) {
+        $log.debug(cacheName + ": no cached value to use");
+        if (!$scope[promiseName]) {
+          $log.debug(cacheName + ": making async call");
+          $scope[promiseName] = ioFn()
+            .then(function(result) {
+              $scope[promiseName] = null;
+              $scope[cacheName] = result;
+              return $scope[cacheName];
+            });
+        }
+        else {
+          $log.debug(cacheName + ": async call already in progress...returning same promise");
+        }
+        return $scope[promiseName];
+      }
+      else {
+        $log.debug(cacheName + ": using cached value");
+        var deferred = $q.defer();
+        deferred.resolve($scope[cacheName]);
+        return deferred.promise;
+      }
     };
 
     function isValidFilterType(type) {

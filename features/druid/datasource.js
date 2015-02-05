@@ -34,7 +34,9 @@ function (angular, _, kbn, moment) {
 
     //Get list of available datasources
     DruidDatasource.prototype.getDataSources = function() {
-      return $http({method: 'GET', url: this.url + '/datasources'});
+      return $http({method: 'GET', url: this.url + '/datasources'}).then(function (response) {
+        return response.data;
+      });
     }
 
     /* Returns a promise which returns
