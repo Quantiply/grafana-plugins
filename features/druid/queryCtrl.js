@@ -21,16 +21,16 @@ function (angular, _) {
       return true;
     },
     validateTopNQuery = function(target, errs) {
-      if (!target.threshold) {
-        errs.threshold = "Must specify a threshold";
+      if (!target.limit) {
+        errs.limit = "Must specify a limit";
         return false;
       }
-      var intThreshold = parseInt(target.threshold);
-      if (isNaN(intThreshold)) {
-        errs.threshold = "Threshold must be a integer";
+      var intLimit = parseInt(target.limit);
+      if (isNaN(intLimit)) {
+        errs.limit = "Limit must be a integer";
         return false;
       }
-      target.threshold = intThreshold
+      target.limit = intLimit
       if (!target.metric) {
         errs.metric = "Must specify a metric";
         return false;
@@ -150,7 +150,8 @@ function (angular, _) {
     defaultAggregatorType = "count",
     defaultPostAggregator = {type: 'arithmetic', 'fn': '+'},
     customGranularities = ['minute', 'fifteen_minute', 'thirty_minute', 'hour', 'day'],
-    defaultCustomGranularity = 'minute';
+    defaultCustomGranularity = 'minute',
+    defaultLimit = 5;
 
     $scope.init = function() {
       $scope.target.errors = validateTarget($scope.target);
@@ -179,6 +180,10 @@ function (angular, _) {
 
       if (!$scope.target.customGranularity) {
         $scope.target.customGranularity = defaultCustomGranularity;
+      }
+      
+      if (!$scope.target.limit) {
+        $scope.target.limit = defaultLimit;
       }
 
       $scope.$on('typeahead-updated', function() {
@@ -220,14 +225,14 @@ function (angular, _) {
     $scope.getDimensions = function(query, callback) {
       $log.debug("Dimension type-ahead query");
       return $scope.getDimensionsAndMetrics(query).then(function (dimsAndMetrics) {
-        callback(dimsAndMetrics[0]);
+        callback(dimsAndMetrics.dimensions);
       });
     };
 
     $scope.getMetrics = function(query, callback) {
       $log.debug("Metric type-ahead query");
       return $scope.getDimensionsAndMetrics(query).then(function (dimsAndMetrics) {
-        callback(dimsAndMetrics[1]);
+        callback(dimsAndMetrics.metrics);
       });
     };
 

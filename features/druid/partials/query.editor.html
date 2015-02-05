@@ -100,18 +100,17 @@
             <ul class="grafana-segment-list" role="menu">
               <li ng-switch-when="topN">
                 <span class="grafana-target-segment">
-                  Threshold
+                  Limit
                 </span>
                 <input type="text"
                        class="grafana-target-segment-input input-small"
-                       ng-model="target.threshold"
+                       ng-model="target.limit"
                        spellcheck='false'
-                       placeholder="100"
                        ng-blur="targetBlur()"
                        />
-                <a bs-tooltip="target.errors.threshold"
+                <a bs-tooltip="target.errors.limit"
                    style="color: rgb(229, 189, 28)"
-                   ng-show="target.errors.threshold">
+                   ng-show="target.errors.limit">
                   <i class="icon-warning-sign"></i>
                 </a>
                 <span class="grafana-target-segment">
@@ -163,7 +162,41 @@
                    ng-show="target.errors.groupBy">
                   <i class="icon-warning-sign"></i>
                 </a>
-                <!-- TODO: add limit and having -->
+                <span class="grafana-target-segment">
+                  Limit
+                  <input type="checkbox"
+                         class="grafana-target-option-checkbox"
+                         ng-model="target.hasLimit"
+                         ng-change="targetBlur(target)"
+                         >
+                </span>
+                <span ng-hide="!target.hasLimit">
+                  <input type="text"
+                         class="grafana-target-segment-input input-small"
+                         ng-model="target.limit"
+                         spellcheck='false'
+                         ng-blur="targetBlur()"
+                         />
+                  <a bs-tooltip="target.errors.limit"
+                     style="color: rgb(229, 189, 28)"
+                     ng-show="target.errors.limit">
+                    <i class="icon-warning-sign"></i>
+                  </a>
+                  Order By
+                  <input type="text"
+                         class="grafana-target-segment-input input-medium"
+                         ng-model="target.orderBy"
+                         spellcheck='false'
+                         placeholder="col1,col2"
+                         ng-blur="targetBlur()"
+                         />
+                  <a bs-tooltip="target.errors.orderBy"
+                     style="color: rgb(229, 189, 28)"
+                     ng-show="target.errors.orderBy">
+                    <i class="icon-warning-sign"></i>
+                  </a>
+                </span>
+                <!-- TODO: add having -->
               </li>
             </ul>
           </li>

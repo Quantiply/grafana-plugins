@@ -37,32 +37,14 @@ function (angular, _, kbn, moment) {
       return $http({method: 'GET', url: this.url + '/datasources'});
     }
 
-    //Returns a promise which returns [listOfDimensions, listOfMetrics]
+    /* Returns a promise which returns
+      {"dimensions":["page_url","ip_netspeed", ...],"metrics":["count", ...]}
+    */
     DruidDatasource.prototype.getDimensionsAndMetrics = function (target, range) {
-      return this.getSchema(target, range)
-        .then(function(response) {
-          //http://druid.io/docs/latest/SegmentMetadataQuery.html
-          var columnGroups = _.mapValues(
-            _.groupBy(
-              _.pairs(response.data[0].columns),
-              function (column) {
-                var colName = column[0];
-                var colInfo = column[1];
-                if (colName === "__time") {
-                  return "time";
-                }
-                //Dimensions are strings in DRUID.  However, it seems that histograms
-                //are also strings but have negative size
-                if (colInfo.type === "STRING" && colInfo.size > 0) {
-                  return "dimension";
-                }
-                return "metric";
-              }),
-          function (colGroup) {
-            return _.pluck(colGroup, 0);
-          });
-          return [columnGroups.dimension, columnGroups.metric]
-        });
+      var datasource = target.datasource;
+      return $http({method: 'GET', url: this.url + '/datasources/' + datasource}).then(function (response) {
+        return response.data;
+      });
     }
 
     //Get segment metadata
