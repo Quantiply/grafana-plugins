@@ -97,7 +97,7 @@ function (angular, _, kbn, moment) {
       var metricNames = getMetricNames(aggregators, postAggregators);
 
       if (target.queryType === 'topN') {
-        var threshold = target.threshold;
+        var threshold = target.limit;
         var metric = target.metric;
         var dimension = target.dimension;
         return this._topNQuery(datasource, from, to, granularity, filters, aggregators, postAggregators, threshold, metric, dimension)
@@ -147,6 +147,7 @@ function (angular, _, kbn, moment) {
         "threshold": threshold,
         "dimension": dimension,
         "metric": metric,
+        // "metric": {type: "inverted", metric: metric},
         "aggregations": aggregators,
         "postAggregations": postAggregators,
         "intervals": getQueryIntervals(from, to)
