@@ -10,7 +10,7 @@ function (angular, _, kbn, moment) {
 
   var module = angular.module('grafana.services');
 
-  module.factory('DruidDatasource', function($q, $http, templateSrv, $timeout) {
+  module.factory('DruidDatasource', function($q, $http, templateSrv, $timeout, $log) {
 
     function replaceTemplateValues(obj, attrList) {
       var substitutedVals = attrList.map(function (attr) {
@@ -48,34 +48,15 @@ function (angular, _, kbn, moment) {
         return response.data;
       });
     }
-
-    //Get segment metadata
-    DruidDatasource.prototype.getSchema = function (target, range) {
-      var dataSourceObj = this;
-      var datasource = target.datasource;
-      //Using the most recent segment for metadata
-      var to = dateToMoment(range.to);
-      var from = to.subtract(1, 's');
-      return dataSourceObj._getSchema(datasource, from, to);
-    }
-
-    DruidDatasource.prototype._getSchema = function (datasource, from, to) {
-      var query = {
-        "queryType": "segmentMetadata",
-        "dataSource": datasource,
-        "intervals": getQueryIntervals(from, to),
-        "merge": true
-      };
-      return this._druidQuery(query);
-    };
-
+    
     // Called once per panel (graph)
     DruidDatasource.prototype.query = function(options) {
       var dataSource = this;
-      var from = dateToMoment(options.range.from);
+      //Add 1 second or Grafana will not display the first point
+      var from = dateToMoment(options.range.from).add(1, 'seconds');
       var to = dateToMoment(options.range.to);
 
-      console.log(options);
+      $log.debug(options);
 
       var promises = options.targets.map(function (target) {
         var granularity = target.shouldOverrideGranularity? target.customGranularity : intervalToGranularity(options.interval);
@@ -96,31 +77,57 @@ function (angular, _, kbn, moment) {
       var limitSpec = null;
       var metricNames = getMetricNames(aggregators, postAggregators);
       var intervals = getQueryIntervals(from, to);
+      var promise = null;
 
       if (target.queryType === 'topN') {
         var threshold = target.limit;
         var metric = target.metric;
         var dimension = target.dimension;
-        return this._topNQuery(datasource, intervals, granularity, filters, aggregators, postAggregators, threshold, metric, dimension)
+        promise = this._topNQuery(datasource, intervals, granularity, filters, aggregators, postAggregators, threshold, metric, dimension)
           .then(function(response) {
             return convertTopNData(response.data, dimension, metric);
           });
       }
-
-      if (target.queryType === 'groupBy') {
+      else if (target.queryType === 'groupBy') {
         if (target.hasLimit) {
           limitSpec = getLimitSpec(target.limit, target.orderBy); 
         }
-        return this._groupByQuery(datasource, intervals, granularity, filters, aggregators, postAggregators, groupBy, limitSpec)
+        promise = this._groupByQuery(datasource, intervals, granularity, filters, aggregators, postAggregators, groupBy, limitSpec)
           .then(function(response) {
             return convertGroupByData(response.data, groupBy, metricNames);
           });
       }
-
-      return this._timeSeriesQuery(datasource, intervals, granularity, filters, aggregators, postAggregators)
-        .then(function(response) {
-          return convertTimeSeriesData(response.data, metricNames);
+      else {
+        promise = this._timeSeriesQuery(datasource, intervals, granularity, filters, aggregators, postAggregators)
+          .then(function(response) {
+            return convertTimeSeriesData(response.data, metricNames);
+          });
+      }
+      /*
+        At this point the promise will return an list of time series of this form
+      [
+        {
+          target: <metric name>,
+          datapoints: [
+            [<metric value>, <timestamp in ms>],
+            ...
+          ]
+        },
+        ...
+      ]
+      
+      Druid calculates metrics based on the intervals specified in the query but returns a timestamp rounded down.
+      We need to adjust the first timestamp in each time series
+      */
+      return promise.then(function (metrics) {
+        var fromMs = formatTimestamp(from);
+        metrics.forEach(function (metric) {
+          if (metric.datapoints[0][1] < fromMs) {
+            metric.datapoints[0][1] = fromMs;
+          }
         });
+        return metrics;
+      });
     };
 
     DruidDatasource.prototype._timeSeriesQuery = function (datasource, intervals, granularity, filters, aggregators, postAggregators) {
@@ -186,7 +193,7 @@ function (angular, _, kbn, moment) {
         url: this.url,
         data: query
       };
-      console.log(query);
+      $log.debug(query);
       return $http(options);
     };
 
