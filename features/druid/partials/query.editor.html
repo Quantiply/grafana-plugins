@@ -80,7 +80,7 @@
             <input type="checkbox"
                    class="grafana-target-option-checkbox"
                    ng-model="target.shouldOverrideGranularity"
-                   ng-change="targetBlur(target)"
+                   ng-change="targetBlur()"
                    >
           </li>
           <li ng-hide="!target.shouldOverrideGranularity">
@@ -107,7 +107,7 @@
                        ng-model="target.limit"
                        spellcheck='false'
                        ng-blur="targetBlur()"
-                       />
+                />
                 <a bs-tooltip="target.errors.limit"
                    style="color: rgb(229, 189, 28)"
                    ng-show="target.errors.limit">
@@ -122,7 +122,7 @@
                        spellcheck='false'
                        placeholder="metric"
                        ng-blur="targetBlur()"
-                       />
+                />
                 <a bs-tooltip="target.errors.metric"
                    style="color: rgb(229, 189, 28)"
                    ng-show="target.errors.metric">
@@ -139,7 +139,7 @@
                        bs-typeahead="getDimensions"
                        data-min-length=0
                        ng-blur="targetBlur()"
-                       />
+                />
                 <a bs-tooltip="target.errors.dimension"
                    style="color: rgb(229, 189, 28)"
                    ng-show="target.errors.dimension">
@@ -156,7 +156,7 @@
                        spellcheck='false'
                        placeholder="dim1,dim2"
                        ng-blur="targetBlur()"
-                       />
+                />
                 <a bs-tooltip="target.errors.groupBy"
                    style="color: rgb(229, 189, 28)"
                    ng-show="target.errors.groupBy">
@@ -167,8 +167,8 @@
                   <input type="checkbox"
                          class="grafana-target-option-checkbox"
                          ng-model="target.hasLimit"
-                         ng-change="targetBlur(target)"
-                         >
+                         ng-change="targetBlur()"
+                  />
                 </span>
                 <span ng-hide="!target.hasLimit">
                   <input type="text"
@@ -176,7 +176,7 @@
                          ng-model="target.limit"
                          spellcheck='false'
                          ng-blur="targetBlur()"
-                         />
+                  />
                   <a bs-tooltip="target.errors.limit"
                      style="color: rgb(229, 189, 28)"
                      ng-show="target.errors.limit">
@@ -189,13 +189,13 @@
                          spellcheck='false'
                          placeholder="col1,col2"
                          ng-blur="targetBlur()"
-                         />
+                  />
                   <a bs-tooltip="target.errors.orderBy"
                      style="color: rgb(229, 189, 28)"
                      ng-show="target.errors.orderBy">
                     <i class="icon-warning-sign"></i>
                   </a>
-                </span>
+                </span><!--end hasLimit -->
                 <!-- TODO: add having -->
               </li>
             </ul>
