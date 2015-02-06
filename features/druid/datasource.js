@@ -95,12 +95,13 @@ function (angular, _, kbn, moment) {
       var groupBy = target.groupBy;
       var limitSpec = null;
       var metricNames = getMetricNames(aggregators, postAggregators);
+      var intervals = getQueryIntervals(from, to);
 
       if (target.queryType === 'topN') {
         var threshold = target.limit;
         var metric = target.metric;
         var dimension = target.dimension;
-        return this._topNQuery(datasource, from, to, granularity, filters, aggregators, postAggregators, threshold, metric, dimension)
+        return this._topNQuery(datasource, intervals, granularity, filters, aggregators, postAggregators, threshold, metric, dimension)
           .then(function(response) {
             return convertTopNData(response.data, dimension, metric);
           });
@@ -110,26 +111,26 @@ function (angular, _, kbn, moment) {
         if (target.hasLimit) {
           limitSpec = getLimitSpec(target.limit, target.orderBy); 
         }
-        return this._groupByQuery(datasource, from, to, granularity, filters, aggregators, postAggregators, groupBy, limitSpec)
+        return this._groupByQuery(datasource, intervals, granularity, filters, aggregators, postAggregators, groupBy, limitSpec)
           .then(function(response) {
             return convertGroupByData(response.data, groupBy, metricNames);
           });
       }
 
-      return this._timeSeriesQuery(datasource, from, to, granularity, filters, aggregators, postAggregators)
+      return this._timeSeriesQuery(datasource, intervals, granularity, filters, aggregators, postAggregators)
         .then(function(response) {
           return convertTimeSeriesData(response.data, metricNames);
         });
     };
 
-    DruidDatasource.prototype._timeSeriesQuery = function (datasource, from, to, granularity, filters, aggregators, postAggregators) {
+    DruidDatasource.prototype._timeSeriesQuery = function (datasource, intervals, granularity, filters, aggregators, postAggregators) {
       var query = {
         "queryType": "timeseries",
         "dataSource": datasource,
         "granularity": granularity,
         "aggregations": aggregators,
         "postAggregations": postAggregators,
-        "intervals": getQueryIntervals(from, to)
+        "intervals": intervals
       };
 
       if (filters && filters.length > 0) {
@@ -139,7 +140,7 @@ function (angular, _, kbn, moment) {
       return this._druidQuery(query);
     };
 
-    DruidDatasource.prototype._topNQuery = function (datasource, from, to, granularity, filters, aggregators, postAggregators, threshold, metric, dimension) {
+    DruidDatasource.prototype._topNQuery = function (datasource, intervals, granularity, filters, aggregators, postAggregators, threshold, metric, dimension) {
       var query = {
         "queryType": "topN",
         "dataSource": datasource,
@@ -150,7 +151,7 @@ function (angular, _, kbn, moment) {
         // "metric": {type: "inverted", metric: metric},
         "aggregations": aggregators,
         "postAggregations": postAggregators,
-        "intervals": getQueryIntervals(from, to)
+        "intervals": intervals
       };
 
       if (filters && filters.length > 0) {
@@ -160,7 +161,7 @@ function (angular, _, kbn, moment) {
       return this._druidQuery(query);
     };
 
-    DruidDatasource.prototype._groupByQuery = function (datasource, from, to, granularity, filters, aggregators, postAggregators, groupBy, limitSpec) {
+    DruidDatasource.prototype._groupByQuery = function (datasource, intervals, granularity, filters, aggregators, postAggregators, groupBy, limitSpec) {
       var query = {
         "queryType": "groupBy",
         "dataSource": datasource,
@@ -168,7 +169,7 @@ function (angular, _, kbn, moment) {
         "dimensions": groupBy,
         "aggregations": aggregators,
         "postAggregations": postAggregators,
-        "intervals": getQueryIntervals(from, to),
+        "intervals": intervals,
         "limitSpec": limitSpec
       };
 
