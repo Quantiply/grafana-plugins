@@ -167,7 +167,7 @@ function (angular, _) {
     defaultFilterType = "selector",
     defaultAggregatorType = "count",
     defaultPostAggregator = {type: 'arithmetic', 'fn': '+'},
-    customGranularities = ['minute', 'fifteen_minute', 'thirty_minute', 'hour', 'day'],
+    customGranularities = ['minute', 'fifteen_minute', 'thirty_minute', 'hour', 'day', 'all'],
     defaultCustomGranularity = 'minute',
     defaultLimit = 5;
 
