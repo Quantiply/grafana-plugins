@@ -134,7 +134,10 @@ function (angular, _) {
       }
       else {
         if (!Array.isArray(target.currentPostAggregator.fields)) {
-          target.currentPostAggregator.fields = target.currentPostAggregator.fields.split(",").map(function(f){ return f.trim(); });
+          target.currentPostAggregator.fields = target.currentPostAggregator.fields
+            .split(",")
+            .map(function (f) { return f.trim(); })
+            .map(function (f) { return {type: "fieldAccess", fieldName: f}; });
         }
         if (target.currentPostAggregator.fields.length < 2) {
           return "Must provide at least two fields for arithmetic post aggregator.";

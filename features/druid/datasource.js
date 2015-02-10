@@ -235,6 +235,11 @@ function (angular, _, kbn, moment) {
       return [from.toISOString() + '/' + to.toISOString()];
     }
 
+    function getPostAggregators(target) {
+      //roger
+      
+    }
+
     function getMetricNames(aggregators, postAggregators) {
       var displayAggs = _.filter(aggregators, function (agg) {
         return agg.type !== 'approxHistogramFold';
