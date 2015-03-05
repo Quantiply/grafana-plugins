@@ -19,6 +19,14 @@ function (angular, _, kbn, moment) {
       return _.assign(_.clone(obj, true), _.zipObject(attrList, substitutedVals));
     }
 
+    var GRANULARITIES = [
+      ['minute', moment.duration(1, 'minute')],
+      ['fifteen_minute', moment.duration(15, 'minute')],
+      ['thirty_minute', moment.duration(30, 'minute')],
+      ['hour', moment.duration(1, 'hour')],
+      ['day', moment.duration(1, 'day')]
+    ];
+
     var filterTemplateExpanders = {
       "selector": _.partialRight(replaceTemplateValues, ['value']),
       "regex": _.partialRight(replaceTemplateValues, ['pattern']),
@@ -59,7 +67,8 @@ function (angular, _, kbn, moment) {
       $log.debug(options);
 
       var promises = options.targets.map(function (target) {
-        var granularity = target.shouldOverrideGranularity? target.customGranularity : intervalToGranularity(options.interval);
+        var maxDataPoints = options.maxDataPoints;
+        var granularity = target.shouldOverrideGranularity? target.customGranularity : computeGranularity(from, to, maxDataPoints);
         return dataSource._doQuery(from, to, granularity, target);
       });
 
@@ -402,27 +411,16 @@ function (angular, _, kbn, moment) {
       return moment(kbn.parseDate(date));
     }
 
-    function intervalToGranularity(kbnInterval) {
-      var seconds = kbn.interval_to_seconds(kbnInterval);
-      var duration = moment.duration(seconds, 'seconds');
+    function computeGranularity(from, to, maxDataPoints) {
+      var intervalSecs = to.unix() - from.unix();
 
-      //Granularity none is too slow
-      // if (duration.asMinutes() < 1.0) {
-      //   return 'none';
-      // }
-      if (duration.asMinutes() < 15.0) {
-        return 'minute';
-      }
-      if (duration.asMinutes() < 30.0) {
-        return 'fifteen_minute';
-      }
-      if (duration.asHours() < 1.0) {
-        return 'thirty_minute';
-      }
-      if (duration.asDays() < 1.0) {
-        return 'hour';
-      }
-      return 'day';
+      /*
+        Find the smallest granularity for which there
+        will be fewer than maxDataPoints
+      */
+      return _.find(GRANULARITIES, function(gEntry) {
+        return intervalSecs/gEntry[1].asSeconds() <= maxDataPoints;
+      })[0];
     }
 
     return DruidDatasource;
