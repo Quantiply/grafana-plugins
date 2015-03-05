@@ -67,7 +67,9 @@ function (angular, _, kbn, moment) {
       $log.debug(options);
 
       var promises = options.targets.map(function (target) {
-        var maxDataPoints = options.maxDataPoints;
+        var maxDataPointsByResolution = options.maxDataPoints;
+        var maxDataPointsByConfig = target.maxDataPoints? target.maxDataPoints : Number.MAX_VALUE;
+        var maxDataPoints = Math.min(maxDataPointsByResolution, maxDataPointsByConfig);
         var granularity = target.shouldOverrideGranularity? target.customGranularity : computeGranularity(from, to, maxDataPoints);
         return dataSource._doQuery(from, to, granularity, target);
       });
@@ -413,14 +415,16 @@ function (angular, _, kbn, moment) {
 
     function computeGranularity(from, to, maxDataPoints) {
       var intervalSecs = to.unix() - from.unix();
-
       /*
         Find the smallest granularity for which there
         will be fewer than maxDataPoints
       */
-      return _.find(GRANULARITIES, function(gEntry) {
-        return intervalSecs/gEntry[1].asSeconds() <= maxDataPoints;
-      })[0];
+      var granularityEntry = _.find(GRANULARITIES, function(gEntry) {
+        return Math.ceil(intervalSecs/gEntry[1].asSeconds()) <= maxDataPoints;
+      });
+      
+      $log.debug("Calculated \"" + granularityEntry[0]  +  "\" granularity [" + Math.ceil(intervalSecs/granularityEntry[1].asSeconds()) + " pts]" + " for " + (intervalSecs/60).toFixed(0) + " minutes and max of " + maxDataPoints + " data points");
+      return granularityEntry[0];
     }
 
     return DruidDatasource;

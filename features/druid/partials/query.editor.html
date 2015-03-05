@@ -96,6 +96,23 @@
               <i class="icon-warning-sign"></i>
             </a>
           </li>
+          <li class="grafana-target-segment" ng-hide="target.shouldOverrideGranularity">
+            Max Data Points
+          </li>
+          <li ng-hide="target.shouldOverrideGranularity">
+            <input type="text"
+                   class="grafana-target-segment-input input-small"
+                   ng-model="target.maxDataPoints"
+                   spellcheck='false'
+                   placeholder="default"
+                   ng-blur="targetBlur()"
+                   >
+            <a bs-tooltip="target.errors.maxDataPoints"
+               style="color: rgb(229, 189, 28)"
+               ng-show="target.errors.maxDataPoints">
+              <i class="icon-warning-sign"></i>
+            </a>
+          </li>
           <li ng-switch on="target.queryType">
             <ul class="grafana-segment-list" role="menu">
               <li ng-switch-when="topN">

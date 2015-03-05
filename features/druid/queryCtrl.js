@@ -10,6 +10,17 @@ function (angular, _) {
   module.controller('DruidTargetCtrl', function($scope, $q, $timeout, $log) {
     
     var
+    validateMaxDataPoints = function (target, errs) {
+      if (target.maxDataPoints) {
+        var intMax = parseInt(target.maxDataPoints);
+        if (isNaN(intMax) || intMax <= 0) {
+          errs.maxDataPoints = "Must be a positive integer";
+          return false;
+        }
+        target.maxDataPoints = intMax;
+      }
+      return true;
+    },
     validateLimit = function (target, errs) {
       if (!target.limit) {
         errs.limit = "Must specify a limit";
@@ -439,6 +450,9 @@ function (angular, _) {
         else {
           errs.customGranularity = "You must choose a granularity.";
         }
+      }
+      else {
+        validateMaxDataPoints(target, errs);
       }
 
       if ($scope.addFilterMode) {
