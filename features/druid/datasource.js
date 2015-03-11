@@ -378,10 +378,9 @@ function (angular, _, kbn, moment) {
         });
       }, {});
 
+      //Convert object keyed by dimension values into an array
+      //of objects {target: <dimVal>, datapoints: <metric time series>}
       return _.map(mergedData, function (vals, key) {
-        /*
-          Second map converts the aggregated object into an array
-        */
         return {
           target: key,
           datapoints: vals
