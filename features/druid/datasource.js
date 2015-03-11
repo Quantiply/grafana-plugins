@@ -60,8 +60,7 @@ function (angular, _, kbn, moment) {
     // Called once per panel (graph)
     DruidDatasource.prototype.query = function(options) {
       var dataSource = this;
-      //Add 1 second or Grafana will not display the first point
-      var from = dateToMoment(options.range.from).add(1, 'seconds');
+      var from = dateToMoment(options.range.from);
       var to = dateToMoment(options.range.to);
 
       $log.debug(options);
@@ -71,7 +70,10 @@ function (angular, _, kbn, moment) {
         var maxDataPointsByConfig = target.maxDataPoints? target.maxDataPoints : Number.MAX_VALUE;
         var maxDataPoints = Math.min(maxDataPointsByResolution, maxDataPointsByConfig);
         var granularity = target.shouldOverrideGranularity? target.customGranularity : computeGranularity(from, to, maxDataPoints);
-        return dataSource._doQuery(from, to, granularity, target);
+        //Round up to start of an interval
+        //Width of bar chars in Grafana is determined by size of the smallest interval
+        var roundedFrom = roundUpStartTime(from, granularity);
+        return dataSource._doQuery(roundedFrom, to, granularity, target);
       });
 
       return $q.all(promises).then(function(results) {
@@ -425,6 +427,15 @@ function (angular, _, kbn, moment) {
       
       $log.debug("Calculated \"" + granularityEntry[0]  +  "\" granularity [" + Math.ceil(intervalSecs/granularityEntry[1].asSeconds()) + " pts]" + " for " + (intervalSecs/60).toFixed(0) + " minutes and max of " + maxDataPoints + " data points");
       return granularityEntry[0];
+    }
+    
+    function roundUpStartTime(from, granularity) {
+      var duration = _.find(GRANULARITIES, function (gEntry) {
+        return gEntry[0] === granularity;
+      })[1];
+      var rounded = moment(Math.ceil((+from)/(+duration)) * (+duration));
+      $log.debug("Rounding up start time from " + from.format() + " to " + rounded.format() + " for granularity [" + granularity + "]");
+      return rounded;
     }
 
     return DruidDatasource;
