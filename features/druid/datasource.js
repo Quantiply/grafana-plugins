@@ -286,27 +286,58 @@ function (angular, _, kbn, moment) {
     }
 
     function convertTopNData(md, dimension, metric) {
+      /*
+        Druid topN results look like this:
+        [
+          {
+            "timestamp": "ts1",
+            "result": [
+              {"<dim>": d1, "<metric>": mv1},
+              {"<dim>": d2, "<metric>": mv2}
+            ]
+          },
+          {
+            "timestamp": "ts2",
+            "result": [
+              {"<dim>": d1, "<metric>": mv3},
+              {"<dim>": d2, "<metric>": mv4}
+            ]
+          },
+          ...
+        ]
+      */
+      
+      /*
+        First, we need make sure that the result for each
+        timestamp contains entries for all distinct dimension values
+        in the entire list of results.
+      
+        Otherwise, if we do a stacked bar chart, Grafana doesn't sum
+        the metrics correctly.
+      */
+      
+      //Get the list of all distinct dimension values for the entire result set
+      var dVals = md.reduce(function (dValsSoFar, tsItem) {
+        var dValsForTs = _.pluck(tsItem.result, dimension);
+        return _.union(dValsSoFar, dValsForTs);
+      }, {});
+      
+      //Add null for the metric for any missing dimension values per timestamp result
+      md.forEach(function (tsItem) {
+        var dValsPresent = _.pluck(tsItem.result, dimension);
+        var dValsMissing = _.difference(dVals, dValsPresent);
+        dValsMissing.forEach(function (dVal) {
+          var nullPoint = {};
+          nullPoint[dimension] = dVal;
+          nullPoint[metric] = null;
+          tsItem.result.push(nullPoint);
+        });
+        return tsItem;
+      });
+
+      //Re-index the results by dimension value instead of time interval
       var mergedData = md.map(function (item) {
         /*
-          Druid topN results look like this:
-            [
-              {
-                "timestamp": "ts1",
-                "result": [
-                  {"<dim>": d1, "<metric>": mv1},
-                  {"<dim>": d2, "<metric>": mv2}
-                ]
-              },
-              {
-                "timestamp": "ts2",
-                "result": [
-                  {"<dim>": d1, "<metric>": mv3},
-                  {"<dim>": d2, "<metric>": mv4}
-                ]
-              },
-              ...
-            ]
-        
           This first map() transforms this into a list of objects
           where the keys are dimension values
           and the values are [metricValue, unixTime] so that we get this:
