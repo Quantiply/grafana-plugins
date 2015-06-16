@@ -1,6 +1,4 @@
-Grafana plugin for [Druid](http://druid.io/) real-time OLAP database. 
-
-![Alt text](/../screenshot/features/druid/Unqiue.png?raw=true) 
+Grafana plugin for [Druid](http://druid.io/) real-time OLAP database.  
 
 ## Status
 
