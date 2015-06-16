@@ -2,7 +2,7 @@ Grafana plugin for [Druid](http://druid.io/) real-time OLAP database.
 
 ## Status
 
-This plugin is experimental.  It's usable but still needs TLC.  In particular, auto-completion for dimension names would really help. It supports timeseries, group by, and topN queries.  For the filters, it supports a list of filters (AND).  OR filters are not yet supported.  To completely support all filters, the editor will need to let you build a tree.
+This plugin is experimental.  It's usable but still needs TLC.  In particular, auto-completion for dimension names would really help. It supports timeseries, group by, and topN queries.  For the filters, it supports a list of filters (AND) and negation (NOT) on a single expression.  OR filters are not yet supported.  To completely support all filters, the editor will need to let you build a tree.
 
 This plugin works with Grafana 1.9.x and has been tested against 1.9.1.  Note that from 1.8.x to 1.9.x, the timestamp format for Grafana was changed from seconds to milliseconds.
 

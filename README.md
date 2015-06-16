@@ -1,3 +1,5 @@
+#Note: The Druid plugin is in [features/druid](features/druid)
+
 grafana-plugins
 ===============
 
