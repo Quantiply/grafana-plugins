@@ -227,9 +227,13 @@ function (angular, _, kbn, moment) {
 
     function getAggregations(aggregations) {
       return _.map(aggregations, function (agg) {
-        if (agg.type === 'doubleMax') {
-          //This is called max in Duid 0.7, doubleMax in 0.8
+        if (agg.type === 'doubleMax' || agg.type === 'longMax') {
+          //This is called max in Duid 0.7, doubleMax/longMax in 0.8
           return _.assign({}, agg, {type: 'max'});
+        }
+        if (agg.type === 'doubleMin' || agg.type === 'longMin') {
+          //This is called min in Duid 0.7, doubleMin/longMin in 0.8
+          return _.assign({}, agg, {type: 'min'});
         }
         return agg;
       });

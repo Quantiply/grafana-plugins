@@ -353,6 +353,15 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
               <span ng-switch-when="doubleMax">
                 {{aggregator.type}}:&nbsp;name&nbsp;=&nbsp;{{aggregator.name}},&nbsp;fieldName&nbsp;=&nbsp;{{aggregator.fieldName}}
               </span>
+              <span ng-switch-when="doubleMin">
+                {{aggregator.type}}:&nbsp;name&nbsp;=&nbsp;{{aggregator.name}},&nbsp;fieldName&nbsp;=&nbsp;{{aggregator.fieldName}}
+              </span>
+              <span ng-switch-when="longMax">
+                {{aggregator.type}}:&nbsp;name&nbsp;=&nbsp;{{aggregator.name}},&nbsp;fieldName&nbsp;=&nbsp;{{aggregator.fieldName}}
+              </span>
+              <span ng-switch-when="longMin">
+                {{aggregator.type}}:&nbsp;name&nbsp;=&nbsp;{{aggregator.name}},&nbsp;fieldName&nbsp;=&nbsp;{{aggregator.fieldName}}
+              </span>
               <span ng-switch-when="approxHistogramFold">
                 {{aggregator.type}}:&nbsp;name&nbsp;=&nbsp;{{aggregator.name}},&nbsp;fieldName&nbsp;=&nbsp;{{aggregator.fieldName}}
               </span>
@@ -422,6 +431,57 @@ Copyright 2014-2015 Quantiply Corporation. All rights reserved.
                 >
                 </span>
                 <span ng-switch-when="doubleMax">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentAggregator.name"
+                         ng-blur="targetBlur()"
+                         placeholder="output name">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentAggregator.fieldName"
+                         ng-blur="targetBlur()"
+                         placeholder="metric name"
+                         bs-typeahead="getMetrics"
+                         data-min-length=0
+                >
+                </span>
+                <span ng-switch-when="doubleMin">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentAggregator.name"
+                         ng-blur="targetBlur()"
+                         placeholder="output name">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentAggregator.fieldName"
+                         ng-blur="targetBlur()"
+                         placeholder="metric name"
+                         bs-typeahead="getMetrics"
+                         data-min-length=0
+                >
+                </span>
+                <span ng-switch-when="longMax">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentAggregator.name"
+                         ng-blur="targetBlur()"
+                         placeholder="output name">
+                  <input type="text"
+                         class="input-small grafana-target-segment-input"
+                         spellcheck='false'
+                         ng-model="target.currentAggregator.fieldName"
+                         ng-blur="targetBlur()"
+                         placeholder="metric name"
+                         bs-typeahead="getMetrics"
+                         data-min-length=0
+                >
+                </span>
+                <span ng-switch-when="longMin">
                   <input type="text"
                          class="input-small grafana-target-segment-input"
                          spellcheck='false'

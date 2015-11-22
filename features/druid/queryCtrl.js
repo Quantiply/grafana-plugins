@@ -185,6 +185,9 @@ function (angular, _) {
       "longSum": _.partial(validateSimpleAggregator, 'longSum'),
       "doubleSum": _.partial(validateSimpleAggregator, 'doubleSum'),
       "doubleMax": _.partial(validateSimpleAggregator, 'doubleMax'),
+      "doubleMin": _.partial(validateSimpleAggregator, 'doubleMin'),
+      "longMax": _.partial(validateSimpleAggregator, 'longMax'),
+      "longMin": _.partial(validateSimpleAggregator, 'longMin'),
       "approxHistogramFold": validateApproxHistogramFoldAggregator,
       "hyperUnique": _.partial(validateSimpleAggregator, 'hyperUnique')
     },
