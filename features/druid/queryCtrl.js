@@ -23,7 +23,7 @@ function (angular, _) {
   var module = angular.module('grafana.controllers');
 
   module.controller('DruidTargetCtrl', function($scope, $q, $timeout, $log) {
-    
+
     var
     validateMaxDataPoints = function (target, errs) {
       if (target.maxDataPoints) {
@@ -184,6 +184,7 @@ function (angular, _) {
       "count": validateCountAggregator,
       "longSum": _.partial(validateSimpleAggregator, 'longSum'),
       "doubleSum": _.partial(validateSimpleAggregator, 'doubleSum'),
+      "doubleMax": _.partial(validateSimpleAggregator, 'doubleMax'),
       "approxHistogramFold": validateApproxHistogramFoldAggregator,
       "hyperUnique": _.partial(validateSimpleAggregator, 'hyperUnique')
     },
@@ -228,7 +229,7 @@ function (angular, _) {
       if (!$scope.target.customGranularity) {
         $scope.target.customGranularity = defaultCustomGranularity;
       }
-      
+
       if (!$scope.target.limit) {
         $scope.target.limit = defaultLimit;
       }

@@ -71,7 +71,7 @@ function (angular, _, kbn, moment) {
         return response.data;
       });
     }
-    
+
     // Called once per panel (graph)
     DruidDatasource.prototype.query = function(options) {
       var dataSource = this;
@@ -99,7 +99,7 @@ function (angular, _, kbn, moment) {
     DruidDatasource.prototype._doQuery = function (from, to, granularity, target) {
       var datasource = target.datasource;
       var filters = target.filters;
-      var aggregators = target.aggregators;
+      var aggregators = getAggregations(target.aggregators);
       var postAggregators = target.postAggregators;
       var groupBy = target.groupBy;
       var limitSpec = null;
@@ -118,7 +118,7 @@ function (angular, _, kbn, moment) {
       }
       else if (target.queryType === 'groupBy') {
         if (target.hasLimit) {
-          limitSpec = getLimitSpec(target.limit, target.orderBy); 
+          limitSpec = getLimitSpec(target.limit, target.orderBy);
         }
         promise = this._groupByQuery(datasource, intervals, granularity, filters, aggregators, postAggregators, groupBy, limitSpec)
           .then(function(response) {
@@ -143,7 +143,7 @@ function (angular, _, kbn, moment) {
         },
         ...
       ]
-      
+
       Druid calculates metrics based on the intervals specified in the query but returns a timestamp rounded down.
       We need to adjust the first timestamp in each time series
       */
@@ -224,6 +224,16 @@ function (angular, _, kbn, moment) {
       $log.debug(query);
       return $http(options);
     };
+
+    function getAggregations(aggregations) {
+      return _.map(aggregations, function (agg) {
+        if (agg.type === 'doubleMax') {
+          //This is called max in Duid 0.7, doubleMax in 0.8
+          return _.assign({}, agg, {type: 'max'});
+        }
+        return agg;
+      });
+    }
 
     function getLimitSpec(limitNum, orderBy) {
       return {
@@ -316,22 +326,22 @@ function (angular, _, kbn, moment) {
           ...
         ]
       */
-      
+
       /*
         First, we need make sure that the result for each
         timestamp contains entries for all distinct dimension values
         in the entire list of results.
-      
+
         Otherwise, if we do a stacked bar chart, Grafana doesn't sum
         the metrics correctly.
       */
-      
+
       //Get the list of all distinct dimension values for the entire result set
       var dVals = md.reduce(function (dValsSoFar, tsItem) {
         var dValsForTs = _.pluck(tsItem.result, dimension);
         return _.union(dValsSoFar, dValsForTs);
       }, {});
-      
+
       //Add null for the metric for any missing dimension values per timestamp result
       md.forEach(function (tsItem) {
         var dValsPresent = _.pluck(tsItem.result, dimension);
@@ -361,7 +371,7 @@ function (angular, _, kbn, moment) {
                 "d2": [mv4, ts2]
               },
               ...
-            ]        
+            ]
         */
         var timestamp = formatTimestamp(item.timestamp);
         var keys = _.pluck(item.result, dimension);
@@ -464,11 +474,11 @@ function (angular, _, kbn, moment) {
       var granularityEntry = _.find(GRANULARITIES, function(gEntry) {
         return Math.ceil(intervalSecs/gEntry[1].asSeconds()) <= maxDataPoints;
       });
-      
+
       $log.debug("Calculated \"" + granularityEntry[0]  +  "\" granularity [" + Math.ceil(intervalSecs/granularityEntry[1].asSeconds()) + " pts]" + " for " + (intervalSecs/60).toFixed(0) + " minutes and max of " + maxDataPoints + " data points");
       return granularityEntry[0];
     }
-    
+
     function roundUpStartTime(from, granularity) {
       var duration = _.find(GRANULARITIES, function (gEntry) {
         return gEntry[0] === granularity;
